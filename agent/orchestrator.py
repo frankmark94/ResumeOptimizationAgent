@@ -22,7 +22,8 @@ from tools.job_search_tools import (
     search_jobs_by_criteria,
     get_job_details,
     filter_jobs_by_requirements,
-    list_available_jobs
+    list_available_jobs,
+    save_manual_job_description
 )
 from tools.document_generation_tools import (
     generate_optimized_resume,
@@ -106,6 +107,7 @@ def create_career_advisor_agent() -> AgentExecutor:
         get_job_details,
         filter_jobs_by_requirements,
         list_available_jobs,
+        save_manual_job_description,  # NEW: Save user-pasted job descriptions
 
         # Job Analysis Tools (Priority 4)
         analyze_job_description,

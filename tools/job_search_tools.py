@@ -245,6 +245,116 @@ def filter_jobs_by_requirements(
 
 
 @tool
+def save_manual_job_description(
+    job_description: str,
+    job_title: str = "",
+    company_name: str = ""
+) -> str:
+    """
+    Save a manually provided job description to the session for document generation.
+
+    Use this tool when the user pastes or provides a job description directly
+    (not from a search). This allows generating resumes/cover letters for ANY job,
+    not just those from search results.
+
+    Args:
+        job_description: The full job description text provided by the user
+        job_title: Job title (optional, will be extracted if not provided)
+        company_name: Company name (optional, will be extracted if not provided)
+
+    Returns:
+        JSON string with the saved job's ID and details
+
+    Example:
+        save_manual_job_description("We are looking for a Senior Python Developer...", "Senior Python Developer", "Acme Corp")
+    """
+    try:
+        import hashlib
+        from datetime import datetime
+        from models.schemas import JobPosting, RemoteType
+
+        session = get_session()
+
+        # Generate unique job ID from description hash
+        job_id = hashlib.md5(job_description.encode()).hexdigest()[:12]
+
+        # Extract title and company if not provided (basic extraction)
+        if not job_title:
+            # Try to extract from first line or first sentence
+            first_line = job_description.split('\n')[0].strip()
+            job_title = first_line[:100] if first_line else "Manual Job Entry"
+
+        if not company_name:
+            company_name = "User Provided Company"
+
+        # Determine remote type from description
+        description_lower = job_description.lower()
+        if 'remote' in description_lower and 'hybrid' not in description_lower:
+            remote_type = RemoteType.REMOTE
+        elif 'hybrid' in description_lower:
+            remote_type = RemoteType.HYBRID
+        else:
+            remote_type = RemoteType.ONSITE
+
+        # Create JobPosting object
+        job = JobPosting(
+            id=job_id,
+            title=job_title,
+            company=company_name,
+            location="Location Not Specified",
+            description=job_description,
+            remote_type=remote_type,
+            url="",
+            salary_range=None,
+            posted_date=datetime.now()
+        )
+
+        # Calculate match score if resume available
+        if session.resume_parsed_data:
+            from services.job_search_service import job_search_service
+            jobs_with_scores = job_search_service.rank_jobs([job], session.resume_parsed_data)
+            job = jobs_with_scores[0]
+
+        # Add to session (prepend so it's first in list)
+        if not session.current_job_search_results:
+            session.current_job_search_results = []
+
+        # Remove if already exists (avoid duplicates)
+        session.current_job_search_results = [
+            j for j in session.current_job_search_results if j.id != job_id
+        ]
+
+        # Add to beginning of list
+        session.current_job_search_results.insert(0, job)
+        session.selected_job_id = job_id
+        session.add_to_summary(f"Saved manual job: {job_title} at {company_name}")
+
+        result = {
+            "status": "success",
+            "message": f"Job description saved successfully for '{job_title}' at {company_name}",
+            "job": {
+                "id": job.id,
+                "title": job.title,
+                "company": job.company,
+                "location": job.location,
+                "remote_type": job.remote_type.value,
+                "match_score": job.match_score,
+                "description_length": len(job_description)
+            },
+            "instruction": "You can now use this job_id to generate optimized resumes or cover letters."
+        }
+
+        return json.dumps(result, indent=2)
+
+    except Exception as e:
+        logger.error(f"Error saving manual job description: {str(e)}")
+        return json.dumps({
+            "status": "error",
+            "message": f"Error saving job description: {str(e)}"
+        })
+
+
+@tool
 def list_available_jobs() -> str:
     """
     List jobs currently available in the session from previous searches.
