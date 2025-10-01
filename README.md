@@ -20,11 +20,13 @@ An AI-powered career advisor that helps job seekers optimize their resumes and f
 
 **Key Features:**
 - 🔍 **Resume Parsing** - Extract structured data from PDF, DOCX, and TXT files
+- 🎯 **Job Search** - Find relevant jobs via Adzuna API with match scoring
 - 📊 **Gap Analysis** - Compare resumes against jobs to identify skill gaps
 - ✨ **AI Optimization** - Claude Sonnet 4-powered content improvements
-- 🎯 **ATS Scoring** - Evaluate and improve Applicant Tracking System compatibility
+- 📝 **Document Generation** - Create tailored resumes and cover letters as PDF/DOCX
+- 💾 **Instant Downloads** - Download generated documents directly in chat
 - 💬 **Context Memory** - Maintains conversation state across multiple interactions
-- 🔧 **10 Specialized Tools** - Purpose-built agent tools for resume optimization
+- 🔧 **16 Specialized Tools** - Purpose-built agent tools for job search and optimization
 
 ---
 
@@ -50,12 +52,13 @@ The system is built on a **modular, tool-based architecture** with four main lay
 - **Memory Storage (SQLite)**: Persists conversation history and context
 - **Conversation History**: Maintains multi-turn dialogue context
 
-#### 3. **Tool Layer (10 Specialized Tools)**
+#### 3. **Tool Layer (16 Specialized Tools)**
 - **Resume Parser**: Extracts structured data from documents
+- **Job Search Tools**: Search, filter, and rank job postings (Adzuna API)
 - **Job Analyzer**: Analyzes job descriptions and requirements
 - **Gap Analyzer**: Compares resumes to job requirements
 - **Resume Optimizer**: Rewrites content for better job matches
-- **Cover Letter Generator**: Creates personalized cover letters
+- **Document Generator**: Creates optimized resumes and cover letters (PDF/DOCX)
 - **Application Tracker**: Manages job application history
 
 #### 4. **Data Layer**
@@ -78,14 +81,17 @@ The system is built on a **modular, tool-based architecture** with four main lay
 2. **Provides Job Preferences** → Communicates requirements to Agent
 3. **Reviews Optimized Resume** → Receives enhanced version (TO-45)
 
-#### Agent System (TO-20)
+#### Agent System
 1. **Parses Resume** → Extracts structured data from PDF
-2. **Searches Jobs** → Queries Indeed/LinkedIn for matching positions
-3. **Optimizes Content** → Uses Claude API to generate improved version
+2. **Searches Jobs** → Queries Adzuna API for matching positions
+3. **Ranks Results** → Calculates match scores based on resume skills
+4. **Generates Documents** → Creates optimized resumes and cover letters
+5. **Optimizes Content** → Uses Claude API to tailor content to jobs
 
 #### External Services
 - **Claude API (LLM Processing)** → Analyzes and generates content
-- **File Storage (PDF/DOCX files)** → Stores original and optimized resumes
+- **Adzuna API (Job Search)** → Real-time job search and filtering
+- **File Storage (PDF/DOCX files)** → Stores original and generated documents
 - **Database (Application Tracking)** → Persists job applications and matches
 
 This **asynchronous workflow** ensures the agent can handle multiple requests efficiently while maintaining context across conversations.
@@ -101,6 +107,13 @@ This **asynchronous workflow** ensures the agent can handle multiple requests ef
 - ✅ **Structured extraction**: Contact info, skills, experience, education
 - ✅ **Version tracking**: Manage multiple resume variants
 - ✅ **Session caching**: Instant access to parsed data
+
+#### Job Search & Discovery 🆕
+- ✅ **Real-time search**: Query Adzuna API for live job postings
+- ✅ **Smart filtering**: Location, remote type, salary range filters
+- ✅ **Match scoring**: Automatic ranking by resume compatibility (0-100%)
+- ✅ **Interactive cards**: Rich job cards with salary, location, remote status
+- ✅ **Job details**: Full descriptions, requirements, company info
 
 #### Job Analysis
 - ✅ **Requirement extraction**: Automatically identifies must-have skills
@@ -120,10 +133,17 @@ This **asynchronous workflow** ensures the agent can handle multiple requests ef
 - ✅ **Achievement focus**: Emphasizes quantifiable results
 - ✅ **ATS compatibility**: Ensures parsing-friendly formatting
 
-#### Context Memory System 🆕
+#### Document Generation 🆕
+- ✅ **Resume generation**: Create optimized PDF/DOCX resumes for specific jobs
+- ✅ **Cover letters**: AI-generated personalized cover letters
+- ✅ **LLM optimization**: Professional summary rewritten for target role
+- ✅ **ATS-friendly formatting**: ReportLab-powered professional layouts
+- ✅ **Instant downloads**: Download buttons directly in chat interface
+
+#### Context Memory System
 - ✅ **Resume persistence**: Remembers uploaded files across conversation
 - ✅ **Parsed data caching**: Instant retrieval without re-parsing
-- ✅ **Session state tracking**: Maintains job search context
+- ✅ **Session state tracking**: Maintains job search and document context
 - ✅ **Smart tool selection**: Automatically uses cached data when available
 
 ---
@@ -133,11 +153,13 @@ This **asynchronous workflow** ensures the agent can handle multiple requests ef
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | **LLM** | Claude Sonnet 4 | AI analysis and generation |
-| **Agent Framework** | LangChain | Tool orchestration |
+| **Agent Framework** | LangChain + LangGraph | Tool orchestration |
 | **UI** | Streamlit | Interactive web interface |
 | **Database** | SQLite + SQLAlchemy | Data persistence |
 | **Validation** | Pydantic | Data modeling |
 | **Document Parsing** | PyPDF2, python-docx | Resume extraction |
+| **Document Generation** | ReportLab, docxtpl | PDF/DOCX creation |
+| **Job Search** | Adzuna API | Real-time job discovery |
 | **Session Management** | Custom SessionState | Context tracking |
 
 ---
@@ -157,10 +179,16 @@ ResumeOptimizationAgent/
 │
 ├── 🔧 tools/
 │   ├── resume_parser.py             # Resume parsing with caching
+│   ├── job_search_tools.py          # 🆕 Job search and filtering
+│   ├── document_generation_tools.py # 🆕 Resume & cover letter creation
 │   ├── job_analyzer.py              # Job description analysis
 │   ├── resume_comparator.py         # Gap analysis
 │   ├── resume_optimizer.py          # Content optimization
-│   └── session_tools.py             # 🆕 Context awareness tools
+│   └── session_tools.py             # Context awareness tools
+│
+├── 🏢 services/                     # 🆕 External integrations
+│   ├── job_search_service.py        # Adzuna API wrapper
+│   └── document_service.py          # PDF/DOCX generation
 │
 ├── 📊 models/
 │   ├── schemas.py                   # Pydantic data models
@@ -168,7 +196,8 @@ ResumeOptimizationAgent/
 │
 ├── 🧰 utils/
 │   ├── helpers.py                   # Utility functions
-│   └── session_state.py             # 🆕 Session state manager
+│   ├── session_state.py             # Session state manager
+│   └── ui_components.py             # 🆕 Job cards & download buttons
 │
 ├── 💾 data/
 │   ├── resumes/                     # Uploaded files
@@ -189,6 +218,7 @@ ResumeOptimizationAgent/
 ### Prerequisites
 - Python 3.10 or higher
 - Anthropic API key ([Get one here](https://console.anthropic.com))
+- Adzuna API credentials ([Sign up here](https://developer.adzuna.com)) - **Free tier: 500 calls/month**
 
 ### Quick Setup (5 Minutes)
 
@@ -204,9 +234,16 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Configure API key
+# 4. Configure API keys
 cp .env.example .env
-nano .env  # Add your ANTHROPIC_API_KEY
+nano .env  # Add your API keys
+
+# Required:
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
+
+# For job search (recommended):
+ADZUNA_API_ID=your_app_id
+ADZUNA_API_KEY=your_api_key
 
 # 5. Initialize database
 python -c "from models.database import init_db; init_db()"
@@ -216,6 +253,13 @@ streamlit run app.py
 ```
 
 The app will automatically open at `http://localhost:8501` 🎉
+
+### Getting Adzuna API Credentials
+
+1. Go to https://developer.adzuna.com/
+2. Click "Sign Up" and create an account
+3. Once logged in, find your App ID and API Key in the dashboard
+4. Copy both values to your `.env` file
 
 ---
 
@@ -228,24 +272,25 @@ The app will automatically open at `http://localhost:8501` 🎉
    - Supports PDF, DOCX, TXT
    - Click "Parse Resume Now"
 
-2. **Ask Questions**
+2. **Search for Jobs** 🆕
    ```
-   "Analyze my resume and highlight my strengths"
-   "What are my top 5 skills?"
-   "How many years of experience do I have?"
-   ```
-
-3. **Compare to Jobs**
-   ```
-   "I'm applying for Senior Product Manager at Amazon.
-    Here's the job description: [paste text]"
+   "Find me Python developer jobs in San Francisco"
+   "Search for remote senior engineer positions"
+   "Show me data science jobs with salaries over $120k"
    ```
 
-4. **Get Optimizations**
+3. **Generate Documents** 🆕
    ```
-   "Optimize my professional summary for this role"
-   "Generate 5 achievement-focused bullets for my current position"
-   "Check my ATS compatibility for keywords: AWS, Python, Agile"
+   "Generate an optimized resume for the first job"
+   "Create a cover letter for the Google position"
+   "Generate a resume and cover letter for job ID 12345"
+   ```
+
+4. **Analyze & Optimize**
+   ```
+   "Analyze my match for the second job"
+   "What skills am I missing for this role?"
+   "Optimize my professional summary for this position"
    ```
 
 ### Example Conversation Flow
@@ -254,45 +299,75 @@ The app will automatically open at `http://localhost:8501` 🎉
 You: [Upload resume.pdf]
 Agent: ✅ Resume uploaded and parsed!
 
-You: "What stands out about my resume?"
-Agent: "Your cloud architecture experience and AWS expertise are strong selling points..."
+You: "Find me senior Python engineer jobs in remote"
+Agent: "I found 8 jobs matching your criteria. Here are the top 5..."
+       [Displays interactive job cards with match scores]
 
-You: "I'm applying for this job: [paste Senior PM role at Google]"
-Agent: "Your resume matches 78% with this role. Key gaps: Data Science, Roadmapping..."
+You: [Click "Generate Resume" on Google job card]
+Agent: "I've created an optimized resume for the Google Senior Python Engineer position.
+        ✅ Emphasized your distributed systems experience
+        ✅ Added keywords: Kubernetes, gRPC, Python 3.11
+        ✅ Quantified impact in bullet points"
+       [Download button appears]
 
-You: "Optimize my summary for this job"
-Agent: [Provides rewritten summary with Google PM keywords]
+You: "Generate a cover letter for this job too"
+Agent: "Cover letter created! Highlighted your 5 years of cloud architecture experience..."
+       [Download button appears]
 
-You: "Generate better bullet points for my Pegasystems role"
-Agent: [Creates 5 achievement-focused bullets with metrics]
+You: [Download both documents]
 ```
 
 ---
 
-## 🧰 Agent Tools (10 Total)
+## 🧰 Agent Tools (16 Total)
 
+### Session Context Tools
 | Tool | Purpose | Input | Output |
 |------|---------|-------|--------|
-| `check_resume_status` 🆕 | Check if resume uploaded | None | Resume status, file path |
-| `get_session_context` 🆕 | Get conversation state | None | Session context summary |
+| `check_resume_status` | Check if resume uploaded | None | Resume status, file path |
+| `get_session_context` | Get conversation state | None | Session context summary |
+
+### Job Search Tools 🆕
+| Tool | Purpose | Input | Output |
+|------|---------|-------|--------|
+| `search_jobs_by_criteria` | Search for jobs | Query, location, remote type | Ranked job list |
+| `get_job_details` | Get full job info | Job ID | Complete job posting |
+| `filter_jobs_by_requirements` | Filter job results | Min score, filters | Filtered job list |
+
+### Resume & Job Analysis Tools
+| Tool | Purpose | Input | Output |
+|------|---------|-------|--------|
 | `parse_resume` | Extract resume data | File path | Structured JSON |
 | `analyze_job_description` | Analyze job posting | Job text | Requirements, keywords |
 | `extract_job_keywords` | Get technical terms | Job text | Keyword list |
 | `compare_resume_to_job` | Gap analysis | Resume + Job | Match score, gaps |
 | `calculate_match_score` | Quick scoring | Skills lists | Percentage match |
+
+### Resume Optimization Tools
+| Tool | Purpose | Input | Output |
+|------|---------|-------|--------|
 | `optimize_resume_section` | Rewrite content | Section + requirements | Optimized text |
 | `generate_resume_bullets` | Create bullets | Role + skills | Bullet point list |
 | `improve_ats_compatibility` | ATS analysis | Resume text | ATS score, tips |
 
+### Document Generation Tools 🆕
+| Tool | Purpose | Input | Output |
+|------|---------|-------|--------|
+| `generate_optimized_resume` | Create tailored resume | Job ID, format | PDF/DOCX file path |
+| `generate_cover_letter` | Create cover letter | Job ID, tone | PDF file path |
+| `list_generated_documents` | Show generated docs | None | Document list |
+
 ### Tool Calling Example
 
 ```python
-# Agent automatically does this:
-1. check_resume_status()  # See if resume already uploaded
-2. parse_resume()         # Extract data (uses cached if available)
-3. analyze_job_description(job_text)  # Extract requirements
-4. compare_resume_to_job(resume, job)  # Calculate match
-5. optimize_resume_section(section, requirements)  # Improve content
+# Complete workflow - Job search to document generation:
+1. check_resume_status()                      # See if resume already uploaded
+2. parse_resume()                             # Extract data (uses cached if available)
+3. search_jobs_by_criteria("Python", "SF")    # Find matching jobs
+4. get_job_details(job_id="12345")            # Get full job info
+5. compare_resume_to_job(resume, job)         # Calculate match score
+6. generate_optimized_resume(job_id="12345")  # Create tailored PDF
+7. generate_cover_letter(job_id="12345")      # Create personalized letter
 ```
 
 ---
@@ -364,10 +439,16 @@ generated_dir = "data/generated"
   ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
   ```
 
-### Optional (Phase 2 - Job Search)
-- Indeed API Key
-- LinkedIn API Key
-- Adzuna API credentials
+### Recommended (For Job Search)
+- **Adzuna API**: [Get it here](https://developer.adzuna.com) - Free tier: 500 calls/month
+  ```env
+  ADZUNA_API_ID=your_app_id
+  ADZUNA_API_KEY=your_api_key
+  ```
+
+### Future Enhancements
+- Indeed API Key (deprecated, will use web scraping)
+- LinkedIn API Key (restricted access)
 
 ---
 
@@ -388,11 +469,20 @@ python debug_prompt_structure.py
 
 ### Manual Testing Checklist
 
+#### Core Features
 - [ ] Upload resume → verify stored in session debug panel
 - [ ] Parse resume → ask "what stands out?" → should NOT ask for file again
 - [ ] Parse resume twice → second time uses cached data (instant)
 - [ ] Click "New Conversation" → session resets correctly
 - [ ] Multi-turn conversation maintains context
+
+#### Job Search 🆕
+- [ ] Search for jobs → "Find Python jobs in NYC"
+- [ ] Job cards render with match scores
+- [ ] Click "Generate Resume" on job card
+- [ ] Click "Generate Cover Letter" on job card
+- [ ] Download buttons work for both documents
+- [ ] PDFs open correctly with proper formatting
 
 ---
 
@@ -404,22 +494,33 @@ python debug_prompt_structure.py
 - Gap analysis and comparison
 - Content optimization
 - Streamlit UI
-- **Context memory system** 🆕
-- **Tool calling fixes** 🆕
+- Context memory system
+- Tool calling fixes
 
-### 🔄 Phase 2: Job Search (In Progress)
-- Automated job search from APIs (Indeed, LinkedIn)
-- Job ranking by relevance
-- Application tracking system
-- Resume version management
+### ✅ Phase 2: Job Search & Documents (Complete)
+- ✅ Real-time job search via Adzuna API
+- ✅ Match score calculation and ranking
+- ✅ Interactive job cards with filters
+- ✅ Resume generation (PDF/DOCX)
+- ✅ Cover letter generation (PDF)
+- ✅ In-line download buttons
+- ✅ Session state for jobs and documents
+- ✅ 16 specialized agent tools
 
-### 📅 Phase 3: Advanced Features
-- Cover letter generation
-- Semantic job matching with ChromaDB
-- Export to PDF/DOCX with formatting
+### 🔄 Phase 3: Multi-Agent Architecture (Planned)
+- LangGraph Supervisor pattern
+- Specialized sub-agents per domain (search, analysis, generation)
+- Parallel tool execution
+- Advanced error handling and retries
+
+### 📅 Phase 4: Advanced Features (Future)
+- Multi-source job aggregation (Indeed scraping, LinkedIn)
+- Semantic job matching with ChromaDB vector store
+- Application tracking dashboard
 - Interview preparation suggestions
 - Email drafting for outreach
 - Chrome extension for job saves
+- Resume A/B testing and analytics
 
 ---
 
