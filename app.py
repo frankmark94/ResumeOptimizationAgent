@@ -12,6 +12,11 @@ from agent.orchestrator import get_agent, reset_agent, arun_agent
 from models.database import init_db
 from config import settings
 from utils.session_state import get_session, reset_session
+from utils.ui_components import (
+    render_job_search_results,
+    render_document_card,
+    parse_agent_response_for_ui
+)
 
 # Page configuration
 st.set_page_config(
@@ -67,6 +72,10 @@ def initialize_session_state():
         st.session_state.resume_uploaded = False
     if 'resume_path' not in st.session_state:
         st.session_state.resume_path = None
+    if 'pending_action' not in st.session_state:
+        st.session_state.pending_action = None
+    if 'show_job_results' not in st.session_state:
+        st.session_state.show_job_results = False
 
 
 def save_uploaded_file(uploaded_file) -> str:
@@ -177,9 +186,15 @@ def main():
             st.markdown(f"- Job provided: {'✅' if session.current_job_description else '❌'}")
             st.markdown(f"- Match analysis: {'✅' if session.job_match_result else '❌'}")
 
+            # Job search status
+            job_count = len(session.current_job_search_results) if session.current_job_search_results else 0
+            st.markdown(f"- Jobs found: {job_count}")
+            doc_count = len(session.generated_documents) if session.generated_documents else 0
+            st.markdown(f"- Documents generated: {doc_count}")
+
             if session.conversation_summary:
                 st.markdown("**Recent Activity:**")
-                for item in session.conversation_summary[-3:]:
+                for item in session.conversation_summary[-5:]:
                     st.markdown(f"- {item}")
 
         st.markdown("---")
@@ -188,12 +203,14 @@ def main():
         st.markdown("### About")
         st.markdown("""
         This AI agent helps you:
-        - Parse and analyze resumes
-        - Compare resumes to job postings
-        - Identify skill gaps
-        - Optimize resume content
-        - Generate tailored bullets
-        - Improve ATS compatibility
+        - 📄 Parse and analyze resumes
+        - 🔍 Search for relevant jobs
+        - 📊 Compare resumes to job postings
+        - 🎯 Identify skill gaps
+        - ✨ Optimize resume content
+        - 📝 Generate tailored resumes
+        - ✉️ Create personalized cover letters
+        - 💾 Download documents instantly
         """)
 
         # Settings
@@ -218,9 +235,10 @@ def main():
 
         **Example prompts:**
         - "Analyze my resume"
-        - "I'm applying for a Senior Software Engineer role at Google. Here's the job description: [paste description]"
-        - "Help me optimize my resume for this job"
-        - "Generate better bullet points for my experience"
+        - "Find me Python developer jobs in San Francisco"
+        - "Search for remote senior engineer positions"
+        - "Generate a resume for the first job"
+        - "Create a cover letter for this position"
         """)
 
     # Chat history
@@ -228,8 +246,47 @@ def main():
         with st.container():
             display_chat_message(message["role"], message["content"])
 
-    # Chat input
-    user_input = st.chat_input("Ask me anything about your resume or job search...")
+            # Check if this message triggered job results or document generation
+            if message["role"] == "assistant":
+                session = get_session()
+                ui_data = parse_agent_response_for_ui(message["content"], session)
+
+                # Render job cards if jobs were found
+                if ui_data["has_jobs"] and len(ui_data["jobs"]) > 0:
+                    with st.expander(f"📋 View {len(ui_data['jobs'])} Job Results", expanded=True):
+                        render_job_search_results(ui_data["jobs"])
+
+                # Render document download buttons if documents were generated
+                if ui_data["has_documents"]:
+                    for doc in ui_data["documents"]:
+                        # Try to get job info from session
+                        job_title = "Unknown Position"
+                        company = "Unknown Company"
+                        if session.selected_job_id:
+                            from services.job_search_service import job_search_service
+                            job = job_search_service.get_job_by_id(
+                                session.selected_job_id,
+                                session.current_job_search_results
+                            )
+                            if job:
+                                job_title = job.title
+                                company = job.company
+
+                        render_document_card(
+                            doc["file_path"],
+                            job_title,
+                            company,
+                            doc["doc_type"]
+                        )
+
+    # Handle pending actions from job card buttons
+    pending_input = st.session_state.get("pending_action")
+    if pending_input:
+        user_input = pending_input
+        st.session_state.pending_action = None
+    else:
+        # Chat input
+        user_input = st.chat_input("Ask me anything about your resume or job search...")
 
     if user_input:
         # Add user message

@@ -18,6 +18,16 @@ from tools.resume_optimizer import (
     improve_ats_compatibility
 )
 from tools.session_tools import check_resume_status, get_session_context
+from tools.job_search_tools import (
+    search_jobs_by_criteria,
+    get_job_details,
+    filter_jobs_by_requirements
+)
+from tools.document_generation_tools import (
+    generate_optimized_resume,
+    generate_cover_letter,
+    list_generated_documents
+)
 
 
 def _parse_claude_output(output: Any) -> str:
@@ -83,16 +93,33 @@ def create_career_advisor_agent() -> AgentExecutor:
 
     # Define all available tools - SESSION TOOLS FIRST for priority
     tools = [
+        # Session Context (Priority 1)
         check_resume_status,      # CRITICAL: Check this before asking for resume
         get_session_context,      # Get full session context
+
+        # Resume Tools (Priority 2)
         parse_resume,
+
+        # Job Search Tools (Priority 3)
+        search_jobs_by_criteria,
+        get_job_details,
+        filter_jobs_by_requirements,
+
+        # Job Analysis Tools (Priority 4)
         analyze_job_description,
         extract_job_keywords,
         compare_resume_to_job,
         calculate_match_score,
+
+        # Resume Optimization Tools (Priority 5)
         optimize_resume_section,
         generate_resume_bullets,
         improve_ats_compatibility,
+
+        # Document Generation Tools (Priority 6)
+        generate_optimized_resume,
+        generate_cover_letter,
+        list_generated_documents,
     ]
 
     # Create agent prompt - using placeholder syntax as recommended by LangChain docs

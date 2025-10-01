@@ -22,6 +22,11 @@ class SessionState:
     current_job_analysis: Optional[Dict[str, Any]] = None
     job_match_result: Optional[Dict[str, Any]] = None
 
+    # Job search results (new)
+    current_job_search_results: List[Any] = field(default_factory=list)
+    selected_job_id: Optional[str] = None
+    generated_documents: Dict[str, str] = field(default_factory=dict)  # job_id -> file_path
+
     # Conversation history (lightweight - just key facts)
     conversation_summary: List[str] = field(default_factory=list)
 
@@ -103,6 +108,9 @@ class SessionState:
         self.current_job_description = None
         self.current_job_analysis = None
         self.job_match_result = None
+        self.current_job_search_results = []
+        self.selected_job_id = None
+        self.generated_documents = {}
         self.conversation_summary = []
 
 

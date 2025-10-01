@@ -44,6 +44,8 @@ class Settings(BaseSettings):
         # Create directories if they don't exist
         self.resume_dir.mkdir(parents=True, exist_ok=True)
         self.generated_dir.mkdir(parents=True, exist_ok=True)
+        templates_dir = self.data_dir / "templates"
+        templates_dir.mkdir(parents=True, exist_ok=True)
 
 
 # Global settings instance
