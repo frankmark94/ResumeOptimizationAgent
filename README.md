@@ -332,7 +332,7 @@ Open **"🔍 Session Debug Info"** in the sidebar to see:
 - Job provided: ✅/❌
 - Recent activity log
 
-See [`CONTEXT_MEMORY_FIX.md`](CONTEXT_MEMORY_FIX.md) for complete implementation details.
+See [`CONTEXT_MEMORY_FIX.md`](docs/CONTEXT_MEMORY_FIX.md) for complete implementation details.
 
 ---
 
@@ -446,21 +446,21 @@ python -c "from models.database import init_db; init_db()"
 **Agent Not Using Tools**
 - Check system prompt in `agent/prompts.py`
 - Verify tools registered in `agent/orchestrator.py`
-- See `DEBUGGING_REPORT.md` for tool calling fixes
+- See [`DEBUGGING_REPORT.md`](docs/DEBUGGING_REPORT.md) for tool calling fixes
 
 **Session State Not Persisting**
 - Check debug panel shows resume uploaded
 - Verify `session.set_resume()` called on upload
-- See `CONTEXT_MEMORY_FIX.md` for details
+- See [`CONTEXT_MEMORY_FIX.md`](docs/CONTEXT_MEMORY_FIX.md) for details
 
 ---
 
 ## 📚 Documentation
 
-- **[QUICKSTART.md](QUICKSTART.md)** - 5-minute setup guide
-- **[CONTEXT_MEMORY_FIX.md](CONTEXT_MEMORY_FIX.md)** - Context memory implementation
-- **[DEBUGGING_REPORT.md](DEBUGGING_REPORT.md)** - Tool calling & rendering fixes
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Complete implementation overview
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - 5-minute setup guide
+- **[CONTEXT_MEMORY_FIX.md](docs/CONTEXT_MEMORY_FIX.md)** - Context memory implementation
+- **[DEBUGGING_REPORT.md](docs/DEBUGGING_REPORT.md)** - Tool calling & rendering fixes
+- **[PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Complete implementation overview
 
 ---
 
