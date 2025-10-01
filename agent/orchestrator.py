@@ -21,7 +21,8 @@ from tools.session_tools import check_resume_status, get_session_context
 from tools.job_search_tools import (
     search_jobs_by_criteria,
     get_job_details,
-    filter_jobs_by_requirements
+    filter_jobs_by_requirements,
+    list_available_jobs
 )
 from tools.document_generation_tools import (
     generate_optimized_resume,
@@ -104,6 +105,7 @@ def create_career_advisor_agent() -> AgentExecutor:
         search_jobs_by_criteria,
         get_job_details,
         filter_jobs_by_requirements,
+        list_available_jobs,
 
         # Job Analysis Tools (Priority 4)
         analyze_job_description,
@@ -147,10 +149,11 @@ def create_career_advisor_agent() -> AgentExecutor:
         tools=tools,
         memory=memory,
         verbose=True,
-        max_iterations=10,
+        max_iterations=15,  # Increased from 10 to handle multi-step workflows
         max_execution_time=300,  # 5 minutes max
         handle_parsing_errors=True,
-        return_intermediate_steps=False
+        return_intermediate_steps=False,
+        early_stopping_method="generate"  # Return partial result instead of error
     )
 
     # Wrap the agent executor to parse Claude's response format

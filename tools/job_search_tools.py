@@ -242,3 +242,62 @@ def filter_jobs_by_requirements(
             "status": "error",
             "message": f"Error filtering jobs: {str(e)}"
         })
+
+
+@tool
+def list_available_jobs() -> str:
+    """
+    List jobs currently available in the session from previous searches.
+
+    CRITICAL: Use this tool FIRST when user requests document generation without specifying a job.
+
+    Use this tool when:
+    - User wants to create a resume but hasn't specified which job
+    - You need to show what jobs are available for document generation
+    - User asks "what jobs do I have" or "show my saved jobs"
+    - BEFORE calling generate_optimized_resume() if you don't have a job_id
+
+    Returns:
+        JSON string with jobs in current session, including job IDs and titles
+
+    Example:
+        list_available_jobs()
+    """
+    try:
+        session = get_session()
+        jobs = session.current_job_search_results or []
+
+        if not jobs:
+            return json.dumps({
+                "status": "no_jobs",
+                "message": "No jobs in current session. User needs to search for jobs first.",
+                "suggestion": "Ask user to provide job search criteria (e.g., 'Find Python jobs in NYC') or ask them to paste a job description.",
+                "count": 0
+            })
+
+        result = {
+            "status": "success",
+            "count": len(jobs),
+            "message": f"Found {len(jobs)} job(s) in current session",
+            "jobs": [
+                {
+                    "id": job.id,
+                    "title": job.title,
+                    "company": job.company,
+                    "location": job.location,
+                    "match_score": job.match_score,
+                    "index": i + 1  # User-friendly numbering
+                }
+                for i, job in enumerate(jobs)
+            ],
+            "instruction": "Present these jobs to the user and ask them to select one by number or company name."
+        }
+
+        return json.dumps(result, indent=2)
+
+    except Exception as e:
+        logger.error(f"Error listing jobs: {str(e)}")
+        return json.dumps({
+            "status": "error",
+            "message": f"Error listing available jobs: {str(e)}"
+        })

@@ -26,10 +26,16 @@ def generate_optimized_resume(
     for the target job. It uses the parsed resume data and optimizes content based on
     job requirements.
 
-    Use this tool when the user asks to create, generate, or download a resume for a specific job.
+    PREREQUISITES:
+    - Requires a valid job_id from search results
+    - If user doesn't specify which job, use list_available_jobs() FIRST
+    - If no jobs in session, ask user to search for jobs or provide criteria
+    - NEVER call this tool without a specific job_id
+
+    Use this tool ONLY when you have a confirmed job_id from the user or session.
 
     Args:
-        job_id: Job ID from search results
+        job_id: Job ID from search results (REQUIRED - get from list_available_jobs())
         file_format: Output format - 'pdf' or 'docx' (default: 'pdf')
 
     Returns:
