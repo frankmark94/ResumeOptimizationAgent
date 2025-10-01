@@ -157,17 +157,36 @@ def parse_skills(skills_text: str) -> list[str]:
 
 
 @tool
-def parse_resume(file_path: str) -> str:
-    """
-    Parse a resume file (PDF, DOCX, or TXT) and extract structured information.
+def parse_resume(file_path: str = None) -> str:
+    """Parse a resume file and extract structured information including contact info, summary, skills, experience, education, and certifications.
 
     Args:
-        file_path: Path to the resume file
+        file_path: Absolute path to the resume file (PDF, DOCX, or TXT). If not provided, will check session state for uploaded file.
 
     Returns:
-        JSON string containing structured resume data with sections:
-        contact info, summary, skills, experience, education, certifications
+        JSON string with parsed resume data
     """
+    from utils.session_state import get_session
+
+    session = get_session()
+
+    # Check if already parsed and cached
+    if session.is_resume_parsed() and (not file_path or file_path == session.uploaded_resume_path):
+        return json.dumps({
+            "status": "cached",
+            "message": "Resume already parsed in this session",
+            **session.resume_parsed_data
+        }, default=str)
+
+    # If no file path provided, check session state
+    if not file_path:
+        if session.has_resume():
+            file_path = session.uploaded_resume_path
+        else:
+            return json.dumps({
+                "error": "No resume file found. Please upload a resume file first."
+            })
+
     try:
         path = Path(file_path)
 
@@ -209,7 +228,11 @@ def parse_resume(file_path: str) -> str:
             file_path=file_path
         )
 
-        return json.dumps(resume_data.model_dump(), indent=2, default=str)
+        # Cache parsed data in session
+        parsed_dict = resume_data.model_dump()
+        session.set_resume(file_path, parsed_dict)
+
+        return json.dumps(parsed_dict, indent=2, default=str)
 
     except Exception as e:
         return json.dumps({"error": f"Failed to parse resume: {str(e)}"})

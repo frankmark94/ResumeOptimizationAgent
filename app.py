@@ -11,6 +11,7 @@ from datetime import datetime
 from agent.orchestrator import get_agent, reset_agent, arun_agent
 from models.database import init_db
 from config import settings
+from utils.session_state import get_session, reset_session
 
 # Page configuration
 st.set_page_config(
@@ -88,15 +89,20 @@ def save_uploaded_file(uploaded_file) -> str:
 
 def display_chat_message(role: str, content: str):
     """Display a chat message with appropriate styling."""
+    import html
+
     css_class = "user-message" if role == "user" else "assistant-message"
     icon = "👤" if role == "user" else "🤖"
 
-    st.markdown(f"""
-    <div class="chat-message {css_class}">
-        <strong>{icon} {role.title()}</strong><br>
-        {content}
-    </div>
-    """, unsafe_allow_html=True)
+    # Escape HTML but preserve markdown by using st.markdown for content
+    with st.container():
+        st.markdown(f"""
+        <div class="chat-message {css_class}">
+            <strong>{icon} {role.title()}</strong>
+        </div>
+        """, unsafe_allow_html=True)
+        # Use st.markdown to properly render markdown content
+        st.markdown(content)
 
 
 def main():
@@ -121,15 +127,24 @@ def main():
         if uploaded_file is not None:
             # Save file
             file_path = save_uploaded_file(uploaded_file)
+
+            # Update BOTH Streamlit session state AND agent session state
             st.session_state.resume_path = file_path
             st.session_state.resume_uploaded = True
-            st.success(f"✅ Resume uploaded: {uploaded_file.name}")
 
-            # Parse resume button
-            if st.button("🔍 Parse Resume"):
+            # Update agent's session context
+            session = get_session()
+            session.set_resume(file_path)
+
+            st.success(f"✅ Resume uploaded: {uploaded_file.name}")
+            st.info(f"📁 File path: {file_path}")
+
+            # Auto-parse resume button
+            if st.button("🔍 Parse Resume Now"):
                 with st.spinner("Parsing resume..."):
                     agent = get_agent()
-                    prompt = f"Please parse my resume at: {file_path}"
+                    # Agent will automatically use session state to find the file
+                    prompt = "Parse my resume and give me a summary of my qualifications."
                     st.session_state.messages.append({"role": "user", "content": prompt})
 
         st.markdown("---")
@@ -140,10 +155,32 @@ def main():
         if st.button("🆕 New Conversation"):
             st.session_state.messages = []
             reset_agent()
+            reset_session()  # Clear session context
+            st.session_state.agent = None  # Force agent recreation
+            st.session_state.resume_uploaded = False
+            st.session_state.resume_path = None
             st.rerun()
 
         if st.button("💾 Save Session"):
             st.info("Session save feature coming soon!")
+
+        st.markdown("---")
+
+        # Debug Info (collapsible)
+        with st.expander("🔍 Session Debug Info"):
+            session = get_session()
+            st.markdown("**Session State:**")
+            st.markdown(f"- Resume uploaded: {'✅' if session.has_resume() else '❌'}")
+            if session.has_resume():
+                st.markdown(f"- File path: `{session.uploaded_resume_path}`")
+                st.markdown(f"- Parsed: {'✅' if session.is_resume_parsed() else '❌'}")
+            st.markdown(f"- Job provided: {'✅' if session.current_job_description else '❌'}")
+            st.markdown(f"- Match analysis: {'✅' if session.job_match_result else '❌'}")
+
+            if session.conversation_summary:
+                st.markdown("**Recent Activity:**")
+                for item in session.conversation_summary[-3:]:
+                    st.markdown(f"- {item}")
 
         st.markdown("---")
 

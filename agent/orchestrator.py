@@ -1,5 +1,5 @@
 """LangChain agent orchestration for resume optimization."""
-from typing import List
+from typing import List, Dict, Any
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_anthropic import ChatAnthropic
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -17,6 +17,53 @@ from tools.resume_optimizer import (
     generate_resume_bullets,
     improve_ats_compatibility
 )
+from tools.session_tools import check_resume_status, get_session_context
+
+
+def _parse_claude_output(output: Any) -> str:
+    """Parse Claude's output format to extract text content.
+
+    Claude Sonnet 4 with tool calling returns a list of content blocks.
+    This function extracts the text from those blocks.
+    """
+    if isinstance(output, list):
+        # Extract text content from list of content blocks
+        text_parts = []
+        for block in output:
+            if isinstance(block, dict) and block.get('type') == 'text':
+                text_parts.append(block.get('text', ''))
+        return '\n'.join(text_parts) if text_parts else str(output)
+    return str(output)
+
+
+class _AgentExecutorWrapper:
+    """Wrapper to parse Claude's output format from AgentExecutor."""
+
+    def __init__(self, executor: AgentExecutor):
+        self.executor = executor
+
+    def invoke(self, *args, **kwargs) -> Dict[str, Any]:
+        """Synchronous invoke with output parsing."""
+        result = self.executor.invoke(*args, **kwargs)
+        if 'output' in result:
+            result['output'] = _parse_claude_output(result['output'])
+        return result
+
+    async def ainvoke(self, *args, **kwargs) -> Dict[str, Any]:
+        """Async invoke with output parsing."""
+        result = await self.executor.ainvoke(*args, **kwargs)
+        if 'output' in result:
+            result['output'] = _parse_claude_output(result['output'])
+        return result
+
+    def __getattr__(self, name):
+        """Delegate all other attributes to the wrapped executor."""
+        return getattr(self.executor, name)
+
+
+def _wrap_agent_executor(executor: AgentExecutor) -> _AgentExecutorWrapper:
+    """Wrap an AgentExecutor to handle Claude's output format."""
+    return _AgentExecutorWrapper(executor)
 
 
 def create_career_advisor_agent() -> AgentExecutor:
@@ -34,8 +81,10 @@ def create_career_advisor_agent() -> AgentExecutor:
         max_tokens=settings.max_tokens
     )
 
-    # Define all available tools
+    # Define all available tools - SESSION TOOLS FIRST for priority
     tools = [
+        check_resume_status,      # CRITICAL: Check this before asking for resume
+        get_session_context,      # Get full session context
         parse_resume,
         analyze_job_description,
         extract_job_keywords,
@@ -46,15 +95,16 @@ def create_career_advisor_agent() -> AgentExecutor:
         improve_ats_compatibility,
     ]
 
-    # Create agent prompt with system message and chat history
+    # Create agent prompt - using placeholder syntax as recommended by LangChain docs
+    # This ensures proper tool-calling behavior with Claude
     prompt = ChatPromptTemplate.from_messages([
         ("system", SYSTEM_PROMPT),
-        MessagesPlaceholder(variable_name="chat_history", optional=True),
+        ("placeholder", "{chat_history}"),
         ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ("placeholder", "{agent_scratchpad}"),
     ])
 
-    # Create the agent
+    # Create the agent - bind_tools is called internally by create_tool_calling_agent
     agent = create_tool_calling_agent(llm, tools, prompt)
 
     # Create memory for conversation history
@@ -64,7 +114,7 @@ def create_career_advisor_agent() -> AgentExecutor:
         output_key="output"
     )
 
-    # Create agent executor
+    # Create agent executor with output parser
     agent_executor = AgentExecutor(
         agent=agent,
         tools=tools,
@@ -76,7 +126,8 @@ def create_career_advisor_agent() -> AgentExecutor:
         return_intermediate_steps=False
     )
 
-    return agent_executor
+    # Wrap the agent executor to parse Claude's response format
+    return _wrap_agent_executor(agent_executor)
 
 
 def run_agent(agent_executor: AgentExecutor, user_input: str) -> str:
@@ -92,7 +143,18 @@ def run_agent(agent_executor: AgentExecutor, user_input: str) -> str:
     """
     try:
         result = agent_executor.invoke({"input": user_input})
-        return result.get("output", "I apologize, but I encountered an issue processing your request.")
+        output = result.get("output", "I apologize, but I encountered an issue processing your request.")
+
+        # Handle Claude's response format - extract text from content blocks if needed
+        if isinstance(output, list):
+            # Extract text content from list of content blocks
+            text_parts = []
+            for block in output:
+                if isinstance(block, dict) and block.get('type') == 'text':
+                    text_parts.append(block.get('text', ''))
+            return '\n'.join(text_parts) if text_parts else str(output)
+
+        return output
     except Exception as e:
         return f"Error: {str(e)}\n\nPlease try rephrasing your request or breaking it into smaller steps."
 
@@ -110,7 +172,18 @@ async def arun_agent(agent_executor: AgentExecutor, user_input: str) -> str:
     """
     try:
         result = await agent_executor.ainvoke({"input": user_input})
-        return result.get("output", "I apologize, but I encountered an issue processing your request.")
+        output = result.get("output", "I apologize, but I encountered an issue processing your request.")
+
+        # Handle Claude's response format - extract text from content blocks if needed
+        if isinstance(output, list):
+            # Extract text content from list of content blocks
+            text_parts = []
+            for block in output:
+                if isinstance(block, dict) and block.get('type') == 'text':
+                    text_parts.append(block.get('text', ''))
+            return '\n'.join(text_parts) if text_parts else str(output)
+
+        return output
     except Exception as e:
         return f"Error: {str(e)}\n\nPlease try rephrasing your request or breaking it into smaller steps."
 
